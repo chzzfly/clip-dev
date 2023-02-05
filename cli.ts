@@ -145,12 +145,15 @@ async function main() {
   } else if (flags.yesterday) {
     const yesterday = formatBeijing(
       new Date(now.getTime() - DAY),
-      "yyyy-MM-dd",
+      "yyyy-MM-dd"
     );
     dayBooks[`${yesterday}`] = [yesterday];
   } else if (flags.day) {
     // split by comma
-    const allDays = flags.day.trim().split(",").map((day) => day.trim());
+    const allDays = flags.day
+      .trim()
+      .split(",")
+      .map((day) => day.trim());
     for (const day of allDays) {
       dayBooks[`${day}`] = [day];
     }
@@ -168,7 +171,10 @@ async function main() {
     dayBooks[`${weekName}`] = allDays;
   } else if (flags.week) {
     // get week
-    const allWeeks = flags.week.trim().split(",").map((day) => day.trim());
+    const allWeeks = flags.week
+      .trim()
+      .split(",")
+      .map((day) => day.trim());
     for (const weekId of allWeeks) {
       const week = getWeekOfYear(new Date(weekId));
       const allDays = week.days;
@@ -191,9 +197,7 @@ async function main() {
   const bookToml = await Deno.readTextFile(`${workDir}/book.toml`);
   const originalBookConfig = parseTOML(bookToml) as unknown as BookConfig;
   let baseUrl = "";
-  if (
-    originalBookConfig.base_url
-  ) {
+  if (originalBookConfig.base_url) {
     baseUrl = originalBookConfig.base_url;
   }
 
@@ -211,9 +215,7 @@ async function main() {
   let outputOptions = originalBookConfig.output;
   let blogRepoPath: string | undefined;
   if (Deno.env.get("JOURNAL_PATH")) {
-    blogRepoPath = path.join(
-      Deno.env.get("JOURNAL_PATH")!,
-    );
+    blogRepoPath = path.join(Deno.env.get("JOURNAL_PATH")!);
   }
 
   const books: Record<string, Book> = {};
@@ -224,16 +226,16 @@ async function main() {
     const keys = Object.keys(dayBooks);
     for (const key of keys) {
       const dayConfig = JSON.parse(
-        JSON.stringify(originalBookConfig),
+        JSON.stringify(originalBookConfig)
       ) as BookConfig;
       if (!isServe && key !== "archive") {
         outputOptions = {
           ...outputOptions,
         };
         outputOptions.epub = {
-          "optional": true,
+          optional: true,
           "cover-image": "cover.jpg",
-          "command": binDir + "/mdbook-epub",
+          command: binDir + "/mdbook-epub",
           "use-default-css": false,
         };
         dayConfig.output = outputOptions;
@@ -303,18 +305,14 @@ async function main() {
   }
   const booksKeys = Object.keys(books);
 
-  for await (
-    const entry of fs.walk(markdownSourcePath, {
-      includeDirs: false,
-    })
-  ) {
+  for await (const entry of fs.walk(markdownSourcePath, {
+    includeDirs: false,
+  })) {
     if (entry.isFile && !entry.name.startsWith(".")) {
       const filepath = entry.path;
       const filename = path.basename(filepath);
       const ext = path.extname(filepath);
-      if (
-        ext === ".md" && !filename.startsWith("_")
-      ) {
+      if (ext === ".md" && !filename.startsWith("_")) {
         let fileLanguage = "zh";
 
         const filenameParts = filename.split(".");
@@ -424,16 +422,17 @@ async function main() {
         const assets = fs.walk(folder, { includeDirs: false });
         for await (const asset of assets) {
           if (
-            asset.isFile && !asset.path.endsWith(".md") &&
+            asset.isFile &&
+            !asset.path.endsWith(".md") &&
             !asset.name.startsWith(".")
           ) {
             const assetRelativePath = path.relative(
               markdownRootPath,
-              asset.path,
+              asset.path
             );
             const assetDistPath = path.join(
               bookSourceFileDist,
-              assetRelativePath,
+              assetRelativePath
             );
             await fs.ensureDir(path.dirname(assetDistPath));
             await Deno.copyFile(asset.path, assetDistPath);
@@ -444,17 +443,11 @@ async function main() {
 
     // format markdown and write to dist
     for (const relativePath of Object.keys(targetMarkdownFiles)) {
-      const distPath = path.join(
-        bookSourceFileDist,
-        relativePath,
-      );
+      const distPath = path.join(bookSourceFileDist, relativePath);
       // ensure folder exists
       const markdownContent = targetMarkdownFiles[relativePath];
       await fs.ensureDir(path.dirname(distPath));
-      await Deno.writeTextFile(
-        distPath,
-        markdownContent,
-      );
+      await Deno.writeTextFile(distPath, markdownContent);
     }
 
     // gen summary
@@ -465,11 +458,13 @@ async function main() {
         if (rules) {
           let match = true;
           for (const rule of rules) {
-            const actualValue =
-              (chapter as unknown as Record<string, string>)[rule.key];
+            const actualValue = (chapter as unknown as Record<string, string>)[
+              rule.key
+            ];
             if (rule.condition === "contains") {
               if (
-                Array.isArray(actualValue) && !actualValue.includes(rule.value)
+                Array.isArray(actualValue) &&
+                !actualValue.includes(rule.value)
               ) {
                 match = false;
               } else if (actualValue !== rule.value) {
@@ -480,7 +475,8 @@ async function main() {
             // notContains
             if (rule.condition === "notContains") {
               if (
-                Array.isArray(actualValue) && actualValue.includes(rule.value)
+                Array.isArray(actualValue) &&
+                actualValue.includes(rule.value)
               ) {
                 match = false;
               } else if (actualValue === rule.value) {
@@ -491,7 +487,7 @@ async function main() {
           if (match) {
             const relativePathToSummary = chapter.relativePath.replace(
               /^content\//,
-              "",
+              ""
             );
 
             if (!summarySection.subSections) {
@@ -499,7 +495,7 @@ async function main() {
             }
             const relativePathToSection = path.relative(
               path.dirname(summarySection.path),
-              relativePathToSummary,
+              relativePathToSummary
             );
             const source = chapter.frontMatter?.extra?.source;
             const originalTitle = chapter.frontMatter?.extra?.original_title;
@@ -537,11 +533,11 @@ async function main() {
           subSections: groups[day].map((chapter: Chapter) => {
             const relativePathToSummary = chapter.relativePath.replace(
               /^content\//,
-              "",
+              ""
             );
             const relativePathToSection = path.relative(
               path.dirname(daySummaryPath),
-              relativePathToSummary,
+              relativePathToSummary
             );
             const source = chapter.frontMatter?.extra?.source;
 
@@ -560,18 +556,18 @@ async function main() {
 
     let summary = `# Summary\n\n`;
     if (book.introduction) {
-      summary += `[${book.introduction.title}](${
-        formatMarkdownPath(book.introduction.path)
-      })\n\n`;
+      summary += `[${book.introduction.title}](${formatMarkdownPath(
+        book.introduction.path
+      )})\n\n`;
     }
     for (const section of book.summary) {
       summary += `- [${section.title}](${formatMarkdownPath(section.path)})\n`;
 
       if (section.subSections) {
         for (const subSection of section.subSections) {
-          summary += `  - [${subSection.title}](${
-            formatMarkdownPath(subSection.path)
-          })\n`;
+          summary += `  - [${subSection.title}](${formatMarkdownPath(
+            subSection.path
+          )})\n`;
         }
       }
     }
@@ -580,9 +576,9 @@ async function main() {
       path.join(
         bookSourceFileDist,
         bookConfig.book.src as string,
-        "SUMMARY.md",
+        "SUMMARY.md"
       ),
-      summary,
+      summary
     );
 
     // copy book assets
@@ -590,17 +586,15 @@ async function main() {
 
     // is exists
     if (fs.existsSync(bookAssetsPath)) {
-      for await (
-        const asset of fs.walk(bookAssetsPath, {
-          includeDirs: false,
-        })
-      ) {
+      for await (const asset of fs.walk(bookAssetsPath, {
+        includeDirs: false,
+      })) {
         if (asset.isFile && !asset.name.startsWith(".")) {
           const assetRelativePath = path.relative(bookAssetsPath, asset.path);
           const assetDistPath = path.join(
             bookSourceFileDist,
             bookConfig.book.src as string,
-            assetRelativePath,
+            assetRelativePath
           );
           await fs.ensureDir(path.dirname(assetDistPath));
           await Deno.copyFile(asset.path, assetDistPath);
@@ -612,7 +606,7 @@ async function main() {
       const coverDistPath = path.join(
         bookSourceFileDist,
         bookConfig.book.src as string,
-        "cover.jpg",
+        "cover.jpg"
       );
       await fs.ensureDir(path.dirname(coverDistPath));
       await Deno.copyFile(coverPath, coverDistPath);
@@ -626,7 +620,7 @@ async function main() {
       const assetDistPath = path.join(
         bookSourceFileDist,
         bookConfig.book.src as string,
-        "README.md",
+        "README.md"
       );
       await fs.ensureDir(path.dirname(assetDistPath));
       await Deno.copyFile(rootReadmePath, assetDistPath);
@@ -641,19 +635,19 @@ async function main() {
         const sectionPath = path.join(
           bookSourceFileDist,
           bookConfig.book.src as string,
-          section.path,
+          section.path
         );
         let subSectionsMarkdown = "";
 
         for (const subSection of section.subSections) {
-          subSectionsMarkdown +=
-            `- [${subSection.title}](${subSection.relativePathToSection})\n`;
+          subSectionsMarkdown += `- [${subSection.title}](${subSection.relativePathToSection})\n`;
 
           dayNoteContent += `- [${subSection.title}](${subSection.source})`;
           if (subSection.title !== subSection.originalTitle) {
-            dayNoteContent += ` ([双语机翻译文](${baseUrl}/${
-              subSection.path.slice(0, -8)
-            }))`;
+            dayNoteContent += ` ([双语机翻译文](${baseUrl}/${subSection.path.slice(
+              0,
+              -8
+            )}))`;
           }
           dayNoteContent += "\n";
         }
@@ -661,7 +655,7 @@ async function main() {
         await fs.ensureDir(path.dirname(sectionPath));
         await Deno.writeTextFile(
           path.join(path.dirname(sectionPath), "README.md"),
-          dayNoteContent,
+          dayNoteContent
         );
         let sectionContent = `# ${section.title}\n\n`;
         try {
@@ -692,16 +686,13 @@ ${body}
           }
         }
         await fs.ensureDir(path.dirname(sectionPath));
-        await Deno.writeTextFile(
-          sectionPath,
-          newSectionContent,
-        );
+        await Deno.writeTextFile(sectionPath, newSectionContent);
       }
     }
 
     // write book.toml
     const bookToml = stringify(
-      book.config as unknown as Record<string, unknown>,
+      book.config as unknown as Record<string, unknown>
     );
     const bookTomlPath = path.join(bookSourceFileDist, "book.toml");
     await Deno.writeTextFile(bookTomlPath, bookToml);
@@ -724,14 +715,14 @@ ${body}
       // copy epub file
       const epubPath = path.join(
         bookSourceFileDist,
-        `book/epub/${book.config.book.title}.epub`,
+        `book/epub/${book.config.book.title}.epub`
       );
       await fs.ensureDir(distDir);
       const epubNewPath = path.join(
         distDir,
-        `${
-          slug(originalBookConfig.book.title as string)
-        }-${keyType}-${key}.epub`,
+        `${slug(
+          originalBookConfig.book.title as string
+        )}-${keyType}-${key}.epub`
       );
       await Deno.copyFile(epubPath, epubNewPath);
       console.log(`build epub ${epubNewPath} success.`);
@@ -749,9 +740,9 @@ ${body}
           "-q",
           path.join(
             distDir,
-            `${
-              slug(originalBookConfig.book.title as string)
-            }-${keyType}-${key}-html.zip`,
+            `${slug(
+              originalBookConfig.book.title as string
+            )}-${keyType}-${key}-html.zip`
           ),
           "./",
         ],
@@ -764,7 +755,7 @@ ${body}
         await sendMail(
           [epubNewPath],
           `${originalBookConfig.book.title} ${key} Updates`,
-          mailConfig,
+          mailConfig
         );
       }
     }
@@ -782,10 +773,7 @@ ${body}
         copyright: "",
       };
       const authors = originalBookConfig.book.authors as string[];
-      if (
-        authors &&
-        authors.length > 0
-      ) {
+      if (authors && authors.length > 0) {
         feedParams.author = {
           name: authors[0],
           link: originalBookConfig.base_url,
@@ -853,13 +841,14 @@ export function getWeekOfYear(date: Date): WeekOfYear {
     Date.UTC(
       Number(beijingDateArr[0]),
       Number(beijingDateArr[1]) - 1,
-      Number(beijingDateArr[2]),
-    ),
+      Number(beijingDateArr[2])
+    )
   );
 
   const day = workingDate.getUTCDay();
 
-  const nearestThursday = workingDate.getUTCDate() +
+  const nearestThursday =
+    workingDate.getUTCDate() +
     Day.Thu -
     (day === Day.Sun ? DAYS_PER_WEEK : day);
 
@@ -870,7 +859,7 @@ export function getWeekOfYear(date: Date): WeekOfYear {
   const weekYear = workingDate.getUTCFullYear();
   // return the calculated full weeks to nearest Thursday
   const week = Math.ceil(
-    (workingDate.getTime() - yearStart.getTime() + DAY) / WEEK,
+    (workingDate.getTime() - yearStart.getTime() + DAY) / WEEK
   );
   const weekRangeInfo = weekToRange(Number(`${weekYear}${addZero(week)}`));
   return {
@@ -923,7 +912,7 @@ export function weekToRange(weekNumber: number): [string[], string] {
   for (let i = 0; i < 7; i++) {
     const day = new Date(weekMonday + DAY * i);
     days.push(
-      `${day.getUTCFullYear()}-${day.getUTCMonth() + 1}-${day.getUTCDate()}`,
+      `${day.getUTCFullYear()}-${day.getUTCMonth() + 1}-${day.getUTCDate()}`
     );
   }
   return [days, weekName];
@@ -958,9 +947,10 @@ export function startDateOfWeek(date: Date, start_day = 1): Date {
   date = new Date(date.getTime());
   const day_of_month = date.getUTCDate();
   const day_of_week = date.getUTCDay();
-  const difference_in_days = day_of_week >= start_day
-    ? day_of_week - start_day
-    : day_of_week - start_day + 7;
+  const difference_in_days =
+    day_of_week >= start_day
+      ? day_of_week - start_day
+      : day_of_week - start_day + 7;
   date.setUTCDate(day_of_month - difference_in_days);
   date.setUTCHours(0);
   date.setUTCMinutes(0);
@@ -972,8 +962,7 @@ export function startDateOfWeek(date: Date, start_day = 1): Date {
 async function getAllContacts(mailConfig: Record<string, string>) {
   const username = Deno.env.get("MJ_APIKEY_PUBLIC")!;
   const password = Deno.env.get("MJ_APIKEY_PRIVATE")!;
-  const url =
-    `https://api.mailjet.com/v3/REST/contact?ContactsList=${mailConfig.mailjet_contact_list_id}&Limit=200`;
+  const url = `https://api.mailjet.com/v3/REST/contact?ContactsList=${mailConfig.mailjet_contact_list_id}&Limit=200`;
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
   headers.set("Authorization", "Basic " + encode(username + ":" + password));
@@ -988,7 +977,7 @@ async function getAllContacts(mailConfig: Record<string, string>) {
 async function sendMail(
   files: string[],
   title: string,
-  mailConfig: Record<string, string>,
+  mailConfig: Record<string, string>
 ) {
   const attachments = [];
 
@@ -999,9 +988,9 @@ async function sendMail(
 
     const fileBasename = path.basename(file);
     const attachment = {
-      "ContentType": "application/epub+zip",
-      "Filename": fileBasename,
-      "Base64Content": base64Encoded,
+      ContentType: "application/epub+zip",
+      Filename: fileBasename,
+      Base64Content: base64Encoded,
     };
     attachments.push(attachment);
   }
@@ -1014,14 +1003,15 @@ async function sendMail(
   if (mailConfig.to_email || Deno.env.get("TO_EMAIL")) {
     // split ,
     const toEmails = mailConfig.to_email || Deno.env.get("TO_EMAIL")!;
-    toArray = toEmails.split(",").map((e: string) => e.trim()).map(
-      (item: string) => {
+    toArray = toEmails
+      .split(",")
+      .map((e: string) => e.trim())
+      .map((item: string) => {
         return {
-          "Email": item,
-          "Name": item.split("@")[0],
+          Email: item,
+          Name: item.split("@")[0],
         };
-      },
-    );
+      });
   } else {
     const contacts = await getAllContacts(mailConfig);
 
@@ -1042,17 +1032,16 @@ async function sendMail(
   headers.set("Authorization", "Basic " + encode(username + ":" + password));
 
   const body = {
-    "Messages": [
+    Messages: [
       {
-        "From": {
-          "Email": mailConfig.from_email as string,
-          "Name": mailConfig.fromName as string,
+        From: {
+          Email: mailConfig.from_email as string,
+          Name: mailConfig.fromName as string,
         },
-        "To": toArray,
-        "Subject": title,
-        "TextPart":
-          `Hi, \n\nThis is ${title}. Please check the attachment for more details.\n\n`,
-        "Attachments": attachments,
+        To: toArray,
+        Subject: title,
+        TextPart: `Hi, \n\nThis is ${title}. Please check the attachment for more details.\n\n`,
+        Attachments: attachments,
       },
     ],
   };
@@ -1101,7 +1090,7 @@ function relativePathToAbsoluteUrl(relativePath: string, host: string): string {
 function renderMarkdown(
   filepath: string,
   content: string,
-  host: string,
+  host: string
 ): string {
   const formatedMarkdown = formatMarkdown(filepath, content, host);
   const converter = new showdown.Converter();
@@ -1143,7 +1132,7 @@ function formatMarkdown(filepath: string, content: string, host: string) {
 function internalMarkdownLinkToAbsoluteUrl(
   currentlink: string,
   targetlink: string,
-  host: string,
+  host: string
 ): string {
   let parentPath = path.dirname(currentlink);
   const basename = path.basename(currentlink);
